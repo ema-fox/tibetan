@@ -120,10 +120,29 @@
       (->> (group-by :card-id))
       (update-vals (fn [as] (frequencies (map correct? as))))))
 
+(defn progress [x]
+  (let [t (get x true 0)
+        a (+ t (get x false 0))]
+    [:div {:style {:display "flex"
+                   :gap "1ch"}}
+     [:progress {:value t :max a}]
+     (str t "/" a)]))
+
 (defn stats [user-id]
-  (let [user-stats (calc-stats (answers-by user-id))]
+  (let [all-stats (calc-stats @!answers)
+        all-overall (apply merge-with + (vals all-stats))
+        user-stats (calc-stats (answers-by user-id))
+        user-overall (apply merge-with + (vals user-stats))]
     [:div
      [:h2 "Statistics"]
+     [:div {:style {:display "grid"
+                    :grid-template-columns "max-content auto"
+                    :gap "1ch"}}
+      "Everyone"
+      (progress all-overall)
+      "You"
+      (progress user-overall)]
+     [:h3 "In Detail"]
      [:table
       [:tbody
        [:tr
@@ -131,7 +150,7 @@
         [:th "Everyone (" (count (distinct (map :by @!answers))) " so far)"]
         [:th "You"]]
        (for [[[wylie front back :as card-id] x]
-             (-> (calc-stats @!answers)
+             (-> all-stats
                  (select-keys (keys user-stats))
                  (->> (sort-by (fn [[_ x]] (ratio #_ safe-ratio x)) >)))]
          [:tr

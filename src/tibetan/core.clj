@@ -228,7 +228,6 @@
              [:title "Tibetan quiz"]]
             [:body
              (let [canswered (count (answers-by user-id))
-                   #_#_cquestion (count questions)
                    limit (min (+ canswered (count (get-open-questions user-id)))
                               (get-in @!settings [user-id :limit] 20))]
                [:div {:style {:display "flex"
@@ -301,4 +300,4 @@
       wrap-cookies))
 
 (defn -main [& args]
-  (run-undertow (wrap-reload #'handler) {:host "0.0.0.0" :port 8080}))
+  (run-undertow (wrap-reload #'handler) {:host "0.0.0.0" :port (or (some-> (first args) Long.) 8080)}))

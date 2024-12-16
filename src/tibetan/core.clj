@@ -272,9 +272,11 @@
              (or (back (note-index wylie-answer))
                  free-answer)]])]])
      [:form {:action "/"
-             :style {:margin-top "1em"}}
+             :style {:margin-top "1em"
+                     :text-align "center"}}
       [:button {:style {:font-size "1.5em"
-                        :padding "1ch"}
+                        :padding "1ch"
+                        :width "15ch"}
                 :autofocus true}
        "Next"]]]))
 

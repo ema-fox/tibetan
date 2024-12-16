@@ -292,6 +292,7 @@
           {:post (fn [{:as req :keys [user-id]}]
                    (let [{:keys [answer wylie choice front back]} (:params req)
                          answer-entry {:by user-id
+                                       :at (java.util.Date.)
                                        :card-id [wylie (keyword front) (keyword back)]
                                        :wylie-answer choice
                                        :free-answer answer}]

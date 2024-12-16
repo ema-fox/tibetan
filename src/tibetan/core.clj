@@ -274,7 +274,8 @@
      [:form {:action "/"
              :style {:margin-top "1em"}}
       [:button {:style {:font-size "1.5em"
-                        :padding "1ch"}}
+                        :padding "1ch"}
+                :autofocus true}
        "Next"]]]))
 
 (defn page [user-id & body]

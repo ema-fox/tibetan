@@ -1,5 +1,7 @@
 (ns tibetan.core
+  (:refer-clojure :exclude [read-string])
   (:require [clojure.string :as str]
+            [clojure.edn :refer [read-string]]
             [duratom.core :refer [duratom]]
             [ring.adapter.undertow :refer [run-undertow]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
@@ -178,6 +180,7 @@
        [:input {:type "hidden" :name "back" :value back}]
        (if choices
          [:div
+          [:input {:type "hidden" :name "choices" :value (pr-str (mapv :wylie choices))}]
           "Choose the correct "
           (case back
             :wojk "transcription"
@@ -196,7 +199,9 @@
                          :gap "1ch"
                          :align-items "center"}}
            "Enter transcription*: "
-           [:input {:name "answer" :autofocus true
+           [:input {:name "answer"
+                    :autofocus true
+                    :required true
                     :style {:font-size "1.5em"}}]
            [:button {:style {:font-size "1.5em"}}
             "submit"]]
@@ -221,24 +226,56 @@
      [:br]
      (stats user-id)]))
 
-(defn show-answer-entry [{:as answer-entry [wylie front back] :card-id :keys [wylie-answer free-answer]}]
+(defn show-answer-entry [{:as answer-entry [wylie front back] :card-id :keys [wylie-answer free-answer wylie-choices]}]
   (let [note (note-index wylie)]
-    [:div {:style {:display "flex"
-                   :gap "1ch"
-                   :align-items "center"}}
-     [:div {:style {:text-align "center"
-                    :font-size "2em"}}
-      (front note)]
-     [:div
-      [:div
-       "correct: " [:span {:style "background-color: lightgreen"} (back note)]]
-      (if (correct? answer-entry)
-        [:div "\u00a0"]
+    [:div
+     (if wylie-choices
+       [:div {:style {:background "lightgray"
+                      :padding "1em"
+                      :margin-top "1em"}}
+        [:div {:style {:text-align "center"
+                       :font-size "3em"}}
+         (front note)]
+        [:br]
+        [:div {:style {:display "grid"
+                       :grid-template-columns "auto auto"
+                       :gap "1ch"}}
+         (for [wc wylie-choices]
+           [:div {:style (merge {:padding "1em"
+                                  :font-size "1.5em"
+                                  :border-style "solid"
+                                  :border-width "1px"}
+                                 (cond (= wylie wc)
+                                       {:background "lightgreen"
+                                        :border-color "green"}
+                                       (= wylie-answer wc)
+                                       {:border-color "red"
+                                        :background "pink"}
+                                       :else
+                                       {:color "darkgray"
+                                        :border-color "gray"}))}
+            (back (note-index wc))])]]
+       [:div {:style {:display "flex"
+                      :gap "1ch"
+                      :align-items "center"}}
+        [:div {:style {:text-align "center"
+                       :font-size "2em"}}
+         (front note)]
         [:div
-         "not correct: "
-         [:span {:style "background-color: pink"}
-          (or (back (note-index wylie-answer))
-              free-answer)]])]]))
+         [:div
+          "correct: " [:span {:style "background-color: lightgreen"} (back note)]]
+         (if (correct? answer-entry)
+           [:div "\u00a0"]
+           [:div
+            "not correct: "
+            [:span {:style "background-color: pink"}
+             (or (back (note-index wylie-answer))
+                 free-answer)]])]])
+     [:form {:action "/"
+             :style {:margin-top "1em"}}
+      [:button {:style {:font-size "1.5em"
+                        :padding "1ch"}}
+       "Next"]]]))
 
 (defn page [user-id & body]
   (response
@@ -282,24 +319,23 @@
         ["/"
          [""
           {:get (fn [{:keys [user-id]}]
-                  (page user-id
-                        (when-let [a (last (answers-by user-id))]
-                          [:div
-                           [:span {:style {:font-size "0.8em"}} "Your last response:"]
-                           (show-answer-entry a)])
-                        (question user-id)))}]
+                  (page user-id (question user-id)))}]
          ["answer"
-          {:post (fn [{:as req :keys [user-id]}]
-                   (let [{:keys [answer wylie choice front back]} (:params req)
+          {:get (fn [{:keys [user-id]}]
+                  (page user-id
+                        (show-answer-entry (last (answers-by user-id)))))
+           :post (fn [{:as req :keys [user-id]}]
+                   (let [{:keys [answer wylie choice choices front back]} (:params req)
                          answer-entry {:by user-id
                                        :at (java.util.Date.)
                                        :card-id [wylie (keyword front) (keyword back)]
                                        :wylie-answer choice
+                                       :wylie-choices (read-string choices)
                                        :free-answer answer}]
                      (swap! !answers conj answer-entry)
                      #_(swap! !answers into (for [id dup-ids]
                                             (assoc answer-entry :by id)))
-                     (redirect "/" :see-other)))}]
+                     (redirect "/answer" :see-other)))}]
          ["answer-more"
           {:post (fn [{:keys [user-id]}]
                    (swap! !settings update-in [user-id :limit] (fnil + 20) 20)

@@ -299,8 +299,12 @@
              #_
              (str user-id)
              [:div {:style {:max-width "80ch"
+                            :min-height "80vh"
                             :font-size "1.5em"
-                            :margin "auto"}}
+                            :margin "auto"
+                            :display "flex"
+                            :align-items "center"
+                            :justify-content "center"}}
               body]])))
 
 (defn wrap-user-id [handler]

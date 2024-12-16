@@ -167,9 +167,10 @@
   (if (< (count (answers-by user-id))
          (get-in @!settings [user-id :limit] 20))
     (if-let [{[wylie front back] :card-id :keys [choices]} (get-question user-id)]
-      [:form
+      [:form 
        {:action "/answer" :method "post"
-        :style {:background "lightgray"
+        :style {:flex-grow 1
+                :background "lightgray"
                 :padding "1em"
                 :margin-top "1em"}}
        [:div {:style {:text-align "center"
@@ -228,7 +229,7 @@
 
 (defn show-answer-entry [{:as answer-entry [wylie front back] :card-id :keys [wylie-answer free-answer wylie-choices]}]
   (let [note (note-index wylie)]
-    [:div
+    [:div {:style {:flex-grow 1}}
      (if wylie-choices
        [:div {:style {:background "lightgray"
                       :padding "1em"
@@ -298,7 +299,7 @@
                 (str canswered "/" limit)])
              #_
              (str user-id)
-             [:div {:style {:max-width "80ch"
+             [:div {:style {:width "80ch"
                             :min-height "80vh"
                             :font-size "1.5em"
                             :margin "auto"

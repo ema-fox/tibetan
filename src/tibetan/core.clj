@@ -117,10 +117,13 @@
           rand-nth
           (prepare-question user-id)))
 
+(defn calc-correct [answers]
+  (frequencies (map correct? answers)))
+
 (defn calc-stats [answers]
   (-> answers
       (->> (group-by :card-id))
-      (update-vals (fn [as] (frequencies (map correct? as))))))
+      (update-vals calc-correct)))
 
 (defn progress [x]
   (let [t (get x true 0)
@@ -163,11 +166,19 @@
            (if-let [y (user-stats card-id)]
              [:progress {:value (float (ratio y))}])]])]]]))
 
+(defn extra-stats [user-id]
+  [:div
+     (->> (group-by :by @!answers)
+            vals
+            (map calc-correct)
+            (sort-by (comp (partial apply +) vals) >)
+            (map progress))])
+
 (defn question [user-id]
   (if (< (count (answers-by user-id))
          (get-in @!settings [user-id :limit] 20))
     (if-let [{[wylie front back] :card-id :keys [choices]} (get-question user-id)]
-      [:form 
+      [:form
        {:action "/answer" :method "post"
         :style {:flex-grow 1
                 :background "lightgray"
@@ -354,7 +365,10 @@
                    (redirect "/" :see-other))}]
          ["stats"
           {:get (fn [{:keys [user-id]}]
-                  (page user-id (stats user-id)))}]])
+                  (page user-id (stats user-id)))}]
+         ["extra-stats"
+          {:get (fn [{:keys [user-id]}]
+                  (page user-id (extra-stats user-id)))}]])
        (routes
         (create-resource-handler {:path "/"})
         (create-default-handler)))
